@@ -28,23 +28,23 @@ function (ls::Static)(df, x, s, x_scratch, lsr, alpha, mayterminate)
 end
 
 function _static!(df,
-                x::Array{T},
-                s::Array{T},
-                x_scratch::Array{T},
+                x::AbstractArray{T},
+                s::AbstractArray{T},
+                x_scratch::AbstractArray{T},
                 lsr::LineSearchResults,
                 alpha::T = one(T),
                 mayterminate::Bool = false) where T
     @assert alpha > 0
     push!(lsr.alpha, alpha)
-
+    
     # Count number of parameters
     n = length(x)
     # Move a distance of alpha in the direction of s
     x_scratch .= x .+ alpha.*s
-
+    
     # Evaluate f(x) at new position
     f_x_scratch = NLSolversBase.value!(df, x_scratch)
     push!(lsr.value, f_x_scratch)
-
+    
     return alpha
 end
