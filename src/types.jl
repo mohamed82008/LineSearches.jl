@@ -6,7 +6,7 @@ mutable struct LineSearchResults{T}
     nfailures::Int
 end
 
-LineSearchResults(::Type{T}) where {T} = LineSearchResults(T[], T[], T[], 0)
+LineSearchResults(::Type{T}) where {T} = LineSearchResults{T}(T[], T[], T[], 0)
 
 Base.length(lsr::LineSearchResults) = length(lsr.alpha)
 
@@ -28,5 +28,5 @@ end
 mutable struct LineSearchException{T<:Real} <: Exception
     message::AbstractString
     alpha::T
-    lsr::LineSearchResults
+    lsr::LineSearchResults{T}
 end

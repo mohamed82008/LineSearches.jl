@@ -20,14 +20,14 @@
 
     # Test HagerZhang I0
     state = getstate()
-    is = InitialHagerZhang(α0 = NaN)
+    is = InitialHagerZhang{Float64}(α0 = NaN)
     is(state, dphi0, df)
     @test state.alpha == 0.005
     @test state.mayterminate == false
 
     # Test HagerZhang I12
     state = getstate()
-    is = InitialHagerZhang(α0 = 1.0)
+    is = InitialHagerZhang{Float64}(α0 = 1.0)
     is(state, dphi0, df)
     @test state.alpha == 0.4999999999999999
     @test state.mayterminate == true

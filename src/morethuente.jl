@@ -155,16 +155,16 @@ function _morethuente!(df,
                       stp::Real,
                       mayterminate::Bool;
                       n::Integer = length(x),
-                      f_tol::Real = 1e-4,
-                      gtol::Real = 0.9,
-                      x_tol::Real = 1e-8,
-                      stpmin::Real = 1e-16,
-                      stpmax::Real = 65536.0,
+                      f_tol::Real = T(1e-4),
+                      gtol::Real = T(0.9),
+                      x_tol::Real = T(1e-8),
+                      stpmin::Real = T(1e-16),
+                      stpmax::Real = T(65536),
                        maxfev::Integer = 100) where T
     if vecnorm(s) == 0
         Base.error("Step direction is zero.")
     end
-    iterfinitemax = -log2(eps(T))
+    iterfinitemax = -log2(T(eps(T)))
     info = 0
     info_cstep = 1 # Info from step
 
@@ -172,8 +172,8 @@ function _morethuente!(df,
     # Check the input parameters for errors.
     #
 
-    if n <= 0 || stp <= 0.0 || f_tol < 0.0 || gtol < 0.0 ||
-        x_tol < 0.0 || stpmin < 0.0 || stpmax < stpmin || maxfev <= 0
+    if n <= 0 || stp <= zero(T) || f_tol < zero(T) || gtol < zero(T) ||
+        x_tol < zero(T) || stpmin < zero(T) || stpmax < stpmin || maxfev <= 0
         throw(ArgumentError("Invalid parameters to morethuente"))
     end
 
@@ -181,7 +181,7 @@ function _morethuente!(df,
     # read finit and slope from LineSearchResults
     f = lsr.value[end]
     dginit = lsr.slope[end] # dot(gradient(df),s)
-    if dginit >= 0.0
+    if dginit >= zero(T)
         throw(ArgumentError("Search direction is not a direction of descent"))
     end
 
@@ -209,10 +209,10 @@ function _morethuente!(df,
     # function, and derivative at the current step.
     #
 
-    stx = 0.0
+    stx = zero(T)
     fx = finit
     dgx = dginit
-    sty = 0.0
+    sty = zero(T)
     fy = finit
     dgy = dginit
 
@@ -234,14 +234,14 @@ function _morethuente!(df,
     iterfinite = 0
     while (!isfinite(f) || any(.!isfinite.(gdf))) && iterfinite < iterfinitemax
         iterfinite += 1
-        stp = 0.5*stp
+        stp = T(0.5)*stp
         @. x_new = x + stp*s
         f = NLSolversBase.value_gradient!(df, x_new)
         gdf = NLSolversBase.gradient(df)
         nfev += 1 # This includes calls to f() and g!()
 
         # Make stpmax = (3/2)*stp < 2stp in the first iteration below
-        stx = (7/8)*stp
+        stx = T(7)/8*stp
     end
     # END: Ensure that the initial step provides finite function values
 
@@ -294,7 +294,7 @@ function _morethuente!(df,
         gdf = NLSolversBase.gradient(df)
         nfev += 1 # This includes calls to f() and g!()
 
-        if isapprox(vecnorm(gdf), 0.0) # TODO: this should be tested vs Optim's g_tol
+        if isapprox(vecnorm(gdf), zero(T)) # TODO: this should be tested vs Optim's g_tol
             return stp
         end
 
@@ -398,8 +398,8 @@ function _morethuente!(df,
         #
 
         if bracketed
-            if abs(sty - stx) >= 0.66 * width1
-                stp = stx + 0.5 * (sty - stx)
+            if abs(sty - stx) >= T(0.66) * width1
+                stp = stx + T(0.5) * (sty - stx)
             end
             width1 = width
             width = abs(sty - stx)
@@ -470,6 +470,8 @@ function cstep(stx::Real, fx::Real, dgx::Real,
                stp::Real, f::Real, dg::Real,
                bracketed::Bool, stpmin::Real, stpmax::Real)
 
+    T = promote_type(typeof(stx), typeof(fx), typeof(dgx), typeof(sty), typeof(fy), typeof(dgy), typeof(stp), typeof(f), typeof(dg), typeof(stpmin), typeof(stpmax))
+
    info = 0
 
    #
@@ -477,7 +479,7 @@ function cstep(stx::Real, fx::Real, dgx::Real,
    #
 
    if (bracketed && (stp <= min(stx, sty) || stp >= max(stx, sty))) ||
-        dgx * (stp - stx) >= 0.0 || stpmax < stpmin
+        dgx * (stp - stx) >= zero(T) || stpmax < stpmin
       throw(ArgumentError("Minimizer not bracketed"))
    end
 
@@ -508,11 +510,11 @@ function cstep(stx::Real, fx::Real, dgx::Real,
       q = gamma - dgx + gamma + dg
       r = p / q
       stpc = stx + r * (stp - stx)
-      stpq = stx + 0.5 * (dgx / ((fx - f) / (stp - stx) + dgx)) * (stp - stx)
+      stpq = stx + T(0.5) * (dgx / ((fx - f) / (stp - stx) + dgx)) * (stp - stx)
       if abs(stpc - stx) < abs(stpq - stx)
          stpf = stpc
       else
-         stpf = 0.5*(stpc + stpq)
+         stpf = T(0.5)*(stpc + stpq)
       end
       bracketed = true
 
@@ -523,7 +525,7 @@ function cstep(stx::Real, fx::Real, dgx::Real,
    # the cubic step is taken, else the quadratic step is taken
    #
 
-   elseif sgnd < 0.0
+   elseif sgnd < zero(T)
       info = 2
       bound = false
       theta = 3 * (fx - f) / (stp - stx) + dgx + dg
@@ -576,7 +578,7 @@ function cstep(stx::Real, fx::Real, dgx::Real,
       p = gamma - dg + theta
       q = gamma + dgx - dg + gamma
       r = p / q
-      if r < 0.0 && gamma != 0.0
+      if r < zero(T) && gamma != zero(T)
          stpc = stp + r * (stx - stp)
       elseif stp > stx
          stpc = stpmax
@@ -639,7 +641,7 @@ function cstep(stx::Real, fx::Real, dgx::Real,
       fy = f
       dgy = dg
    else
-      if sgnd < 0.0
+      if sgnd < zero(T)
          sty = stx
          fy = fx
          dgy = dgx
@@ -658,9 +660,9 @@ function cstep(stx::Real, fx::Real, dgx::Real,
    stp = stpf
    if bracketed && bound
       if sty > stx
-         stp = min(stx + 0.66 * (sty - stx), stp)
+         stp = min(stx + T(0.66) * (sty - stx), stp)
       else
-         stp = max(stx + 0.66 * (sty - stx), stp)
+         stp = max(stx + T(0.66) * (sty - stx), stp)
       end
    end
 

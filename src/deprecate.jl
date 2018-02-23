@@ -29,7 +29,7 @@ function alphatry(alpha::T,
                   psi1::Real = convert(T,0.2),
                   psi2::Real = convert(T,2),
                   psi3::Real = convert(T,0.1),
-                  iterfinitemax::Integer = ceil(Integer, -log2(eps(T))),
+                  iterfinitemax::Integer = ceil(Integer, -log2(T(eps(T)))),
                   alphamax::Real = convert(T, Inf),
                   verbose::Bool = false) where T
    if dep_alphatry[] == false

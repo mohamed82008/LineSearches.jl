@@ -54,7 +54,7 @@
             alpha = 1.0
             mayterminate = false
 
-            if linesearch! == HagerZhang() || linesearch! == MoreThuente()
+            if linesearch! == HagerZhang{Float64}() || linesearch! == MoreThuente{Float64}()
                 @test_throws ErrorException alpha = linesearch!(df, x, p, xtmp, lsr, alpha, mayterminate)
             else
                 alpha = linesearch!(df, x, p, xtmp, lsr, alpha, mayterminate)

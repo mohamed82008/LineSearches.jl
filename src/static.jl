@@ -32,7 +32,7 @@ function _static!(df,
                 s::Array{T},
                 x_scratch::Array{T},
                 lsr::LineSearchResults,
-                alpha::Real = 1.0,
+                alpha::T = one(T),
                 mayterminate::Bool = false) where T
     @assert alpha > 0
     push!(lsr.alpha, alpha)

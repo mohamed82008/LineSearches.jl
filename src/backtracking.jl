@@ -8,12 +8,12 @@ there exists a factor ρ = ρ(c₁) such that α' ≦ ρ α.
 
 This is a modification of the algorithm described in Nocedal Wright (2nd ed), Sec. 3.5.
 """
-@with_kw struct BackTracking{TF, TI}
+@with_kw struct BackTracking{TF}
     c1::TF = 1e-4
     rhohi::TF = 0.5
     rholo::TF = 0.1
-    iterations::TI = 1_000
-    order::TI = 3
+    iterations::Int = 1_000
+    order::Int = 3
     maxstep::TF = Inf
 end
 
@@ -27,15 +27,15 @@ function _backtracking!(df,
                         s::Array{T},
                         x_scratch::Array{T},
                         lsr::LineSearchResults,
-                        alpha::Real = 1.0,
+                        alpha::Real = one(T),
                         mayterminate::Bool = false,
-                        c1::Real = 1e-4,
-                        rhohi::Real = 0.5,
-                        rholo::Real = 0.1,
+                        c1::Real = T(1e-4),
+                        rhohi::Real = T(0.5),
+                        rholo::Real = T(0.1),
                         iterations::Integer = 1_000,
                         order::Int = 3,
-                        maxstep::Real = Inf) where T
-    iterfinitemax = -log2(eps(T))
+                        maxstep::Real = T(Inf)) where T
+    iterfinitemax = -log2(T(eps(T)))
 
     @assert order in (2,3)
     # Check the input is valid, and modify otherwise
@@ -67,7 +67,7 @@ function _backtracking!(df,
     iterfinite = 0
     while !isfinite(f_x_scratch) && iterfinite < iterfinitemax
         iterfinite += 1
-        alpha *= 0.5
+        alpha *= T(0.5)
         # Tentatively move a distance of alpha in the direction of s
         x_scratch .= x .+ alpha.*s
         push!(lsr.alpha, alpha)
@@ -96,7 +96,7 @@ function _backtracking!(df,
             # guaranteed backtracking factor 0.5 * (1-c1)^{-1} which is < 1
             # provided that c1 < 1/2; the backtrack_condition at the beginning
             # of the function guarantees at least a backtracking factor rho.
-            alphatmp = - (gxp * alpha^2) / ( 2.0 * (f_x_scratch - f_x - gxp*alpha) )
+            alphatmp = - (gxp * alpha^2) / ( T(2) * (f_x_scratch - f_x - gxp*alpha) )
         else
             # Backtracking via cubic interpolation
             @inbounds alpha0 = lsr.alpha[end-1]
@@ -109,10 +109,10 @@ function _backtracking!(df,
             b = (-alpha0^3*(phi1-f_x-gxp*alpha1)+alpha1^3*(phi0-f_x-gxp*alpha0))*div
 
             if isapprox(a, zero(a))
-                alphatmp = gxp / (2.0*b)
+                alphatmp = gxp / (2*b)
             else
                 discr = max(b^2-3*a*gxp, zero(alpha))
-                alphatmp = (-b + sqrt(discr)) / (3.0*a)
+                alphatmp = (-b + sqrt(discr)) / (3*a)
             end
         end
         alphatmp =  NaNMath.min(alphatmp, alpha*rhohi) # avoid too small reductions

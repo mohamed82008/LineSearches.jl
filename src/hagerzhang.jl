@@ -102,10 +102,10 @@ function _hagerzhang!(df,
                      s::Array{T},
                      xtmp::Array{T},
                      lsr::LineSearchResults{T},
-                     c::Real,
+                     c::T,
                      mayterminate::Bool,
-                     delta::Real = DEFAULTDELTA,
-                     sigma::Real = DEFAULTSIGMA,
+                     delta::Real = T(DEFAULTDELTA),
+                     sigma::Real = T(DEFAULTSIGMA),
                      alphamax::Real = convert(T,Inf),
                      rho::Real = convert(T,5),
                      epsilon::Real = convert(T,1e-6),
@@ -115,8 +115,7 @@ function _hagerzhang!(df,
                      display::Integer = 0) where T
     # Prevent values of `xtmp` that are likely to make
     # df.f(xtmp) infinite
-    iterfinitemax::Int = ceil(Int, -log2(eps(T)))
-
+    iterfinitemax::Int = ceil(Int, -log2(T(eps(T))))
     if display & LINESEARCH > 0
         println("New linesearch")
     end
@@ -181,7 +180,7 @@ function _hagerzhang!(df,
             # have crested over the peak. Use bisection.
             ib = length(lsr)
             ia = ib - 1
-            if c != lsr.alpha[ib] || lsr.slope[ib] >= 0
+            if c ≉  lsr.alpha[ib] || lsr.slope[ib] >= 0
                 error("c = ", c, ", lsr = ", lsr)
             end
             # ia, ib = bisect(phi, lsr, ia, ib, philim) # TODO: Pass options
@@ -194,16 +193,15 @@ function _hagerzhang!(df,
             if c > alphamax
                 c = (alphamax + cold)/2
                 if display & BRACKET > 0
-                    println("bracket: exceeding alphamax, bisecting: alphamax = ", alphamax,
-                            ", cold = ", cold, ", new c = ", c)
+                    println("bracket: exceeding alphamax, bisecting: alphamax = ", alphamax, ", cold = ", cold, ", new c = ", c)
                 end
-                if c == cold || nextfloat(c) >= alphamax
+                if c == cold || c + T(eps(T)) >= alphamax
                     return cold
                 end
             end
             phic, dphic = linefunc!(df, x, s, c, xtmp, true)
             iterfinite = 1
-            while !(isfinite(phic) && isfinite(dphic)) && c > nextfloat(cold) && iterfinite < iterfinitemax
+            while !(isfinite(phic) && isfinite(dphic)) && c > cold + T(eps(T)) && iterfinite < iterfinitemax
                 alphamax = c
                 lsr.nfailures += 1
                 iterfinite += 1
@@ -247,7 +245,7 @@ function _hagerzhang!(df,
                     ", phi(a) = ", lsr.value[ia],
                     ", phi(b) = ", lsr.value[ib])
         end
-        if b - a <= eps(b)
+        if b - a <= T(eps(b))
             return a # lsr.value[ia]
         end
         iswolfe, iA, iB = secant2!(df, x, s, xtmp, lsr, ia, ib, philim, delta, sigma, display)
@@ -261,7 +259,7 @@ function _hagerzhang!(df,
             if display & LINESEARCH > 0
                 println("Linesearch: secant succeeded")
             end
-            if nextfloat(lsr.value[ia]) >= lsr.value[ib] && nextfloat(lsr.value[iA]) >= lsr.value[iB]
+            if lsr.value[ia] + T(eps(T)) >= lsr.value[ib] && lsr.value[iA] + T(eps(T)) >= lsr.value[iB]
                 # It's so flat, secant didn't do anything useful, time to quit
                 if display & LINESEARCH > 0
                     println("Linesearch: secant suggests it's flat")
@@ -303,7 +301,7 @@ function satisfies_wolfe(c::T,
                          sigma::Real) where T<:Number
     wolfe1 = delta * dphi0 >= (phic - phi0) / c &&
                dphic >= sigma * dphi0
-    wolfe2 = (2.0 * delta - 1.0) * dphi0 >= dphic >= sigma * dphi0 &&
+    wolfe2 = T(2 * delta - T(1)) * dphi0 >= dphic >= sigma * dphi0 &&
                phic <= philim
     return wolfe1 || wolfe2
 end
@@ -464,7 +462,7 @@ function bisect!(df,
     @assert lsr.slope[ib] < 0       # otherwise we wouldn't be here
     @assert lsr.value[ib] > philim
     @assert b > a
-    while b - a > eps(b)
+    while b - a > T(eps(b))
         if display & BISECT > 0
             println("bisect: a = ", a, ", b = ", b, ", b - a = ", b - a)
         end
@@ -563,7 +561,7 @@ function _hzI12(alpha::T,
 
     # Prevent values of `xtmp` that are likely to make
     # df.f(xtmp) infinite
-    iterfinitemax::Int = ceil(Int, -log2(eps(T)))
+    iterfinitemax::Int = ceil(Int, -log2(T(eps(T))))
 
     phi0 = lsr.value[1]
     dphi0 = lsr.slope[1]
@@ -595,8 +593,8 @@ function _hzI12(alpha::T,
     end
     mayterminate = false
     if isfinite(a) && a > 0 && phitest <= phi0
-        alpha = -dphi0 / 2 / a # if convex, choose minimum of quadratic
-        if alpha == 0
+        alpha = -dphi0 / T(2) / a # if convex, choose minimum of quadratic
+        if alpha == zero(T)
             error("alpha is zero. dphi0 = ", dphi0, ", phi0 = ", phi0, ", phitest = ", phitest, ", alphatest = ", alphatest, ", a = ", a)
         end
         if alpha <= alphamax
@@ -630,11 +628,11 @@ function _hzI0(x::Array{T},
                psi0::T = convert(T,0.01)) where T
     alpha = one(T)
     gr_max = maximum(abs, gr)
-    if gr_max != 0.0
+    if gr_max != zero(T)
         x_max = maximum(abs, x)
-        if x_max != 0.0
+        if x_max != zero(T)
             alpha = psi0 * x_max / gr_max
-        elseif f_x != 0.0
+        elseif f_x != zero(T)
             alpha = psi0 * abs(f_x) / vecnorm(gr)
         end
     end

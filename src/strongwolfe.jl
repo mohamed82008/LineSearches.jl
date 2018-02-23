@@ -28,28 +28,28 @@ function _strongwolfe!(df,
                       p::Array{T},
                       x_new::Array{T},
                       lsr::LineSearchResults{T},
-                      alpha0::Real,
+                      alpha0::T,
                       mayterminate::Bool;
-                      c1::Real = 1e-4,
-                      c2::Real = 0.9,
-                      rho::Real = 2.0) where T
+                      c1::T = T(1e-4),
+                      c2::T = T(0.9),
+                      rho::T = (2)) where T
     # Parameter space
     n = length(x)
 
     # Step-sizes
-    a_0 = 0.0
+    a_0 = zero(T)
     a_iminus1 = a_0
     a_i = alpha0
-    a_max = 65536.0
+    a_max = T(65536)
 
     # phi(alpha) = df.f(x + alpha * p)
     phi_0 = lsr.value[end]
     phi_a_iminus1 = phi_0
-    phi_a_i = NaN
+    phi_a_i = T(NaN)
 
     # phi'(alpha) = vecdot(g(x + alpha * p), p)
     phiprime_0 = lsr.slope[end]
-    phiprime_a_i = NaN
+    phiprime_a_i = T(NaN)
 
     # Iteration counter
     i = 1
@@ -80,7 +80,7 @@ function _strongwolfe!(df,
         end
 
         # Check condition 3
-        if phiprime_a_i >= 0.0
+        if phiprime_a_i >= zero(T)
             a_star = zoom(a_i, a_iminus1,
                           phiprime_0, phi_0,
                           df, x, p, x_new)
@@ -102,22 +102,22 @@ function _strongwolfe!(df,
     return a_max
 end
 
-function zoom(a_lo::Real,
-              a_hi::Real,
-              phiprime_0::Real,
-              phi_0::Real,
+function zoom(a_lo::T,
+              a_hi::T,
+              phiprime_0::T,
+              phi_0::T,
               df,
-              x::Array,
-              p::Array,
-              x_new::Array,
-              c1::Real = 1e-4,
-              c2::Real = 0.9)
+              x::Array{T},
+              p::Array{T},
+              x_new::Array{T},
+              c1::Real = T(1e-4),
+              c2::Real = T(0.9)) where {T}
 
     # Parameter space
     n = length(x)
 
     # Step-size
-    a_j = NaN
+    a_j = T(NaN)
 
     # Count iterations
     iteration = 0
@@ -167,7 +167,7 @@ function zoom(a_lo::Real,
                 return a_j
             end
 
-            if phiprime_a_j * (a_hi - a_lo) >= 0.0
+            if phiprime_a_j * (a_hi - a_lo) >= zero(T)
                 a_hi = a_lo
             end
 
@@ -185,9 +185,9 @@ function interpolate(a_i1::Real, a_i::Real,
                      phi_a_i1::Real, phi_a_i::Real,
                      phiprime_a_i1::Real, phiprime_a_i::Real)
     d1 = phiprime_a_i1 + phiprime_a_i -
-        3.0 * (phi_a_i1 - phi_a_i) / (a_i1 - a_i)
+        3 * (phi_a_i1 - phi_a_i) / (a_i1 - a_i)
     d2 = sqrt(d1 * d1 - phiprime_a_i1 * phiprime_a_i)
     return a_i - (a_i - a_i1) *
         ((phiprime_a_i + d2 - d1) /
-         (phiprime_a_i - phiprime_a_i1 + 2.0 * d2))
+         (phiprime_a_i - phiprime_a_i1 + 2 * d2))
 end
